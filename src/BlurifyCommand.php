@@ -102,6 +102,40 @@ class BlurifyCommand {
 	}
 
 	/**
+	 * SVG Images can't always be blurred, wo we replace them with empty images.
+	 * Because this tool was made to ease the process of exporting demo content of themes,
+	 * we don't really need to do anything complex with svg files.
+	 *
+	 * ## EXAMPLE
+	 *
+	 *  $ wp blurify replace_svg
+	 *  Replaces all svg files under the wp-content/uploads folder with empty svg's. Please run this command only after the blur command.
+	 *
+	 * @param array $args arguments of the command
+	 * @param array $assocArgs associative arguments of the command
+	 * @return void
+	 */
+	public function replace_svg() {
+
+		WP_CLI::confirm( "Are you sure you want to replace svg images with empty svg files?" );
+
+		$uploadsPath = wp_upload_dir();
+		$uploadsPath = $uploadsPath['basedir'];
+		$images = $this->getSVGList( $uploadsPath );
+		$filesystem = new Filesystem();
+
+		foreach( $images as $image ) {
+			$path = $image->getPathname();
+
+			$filesystem->remove( $path );
+			$filesystem->dumpFile( $path, '' );
+
+			\WP_CLI::line( sprintf( 'Replaced file %s', basename( $path ) ) );
+		}
+
+	}
+
+	/**
 	 * Get list of all images into the uploads folder.
 	 *
 	 * @param string $path the uploads folder.
@@ -127,6 +161,36 @@ class BlurifyCommand {
 			}
 
 			$files[] = $path;
+
+		}
+
+		return $files;
+
+	}
+
+	/**
+	 * Get list of all images into the uploads folder.
+	 *
+	 * @param string $path the uploads folder.
+	 * @return array
+	 */
+	private function getSVGList( $path ) {
+
+		$iterator = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $path ) );
+		$files = [];
+
+		foreach ( $iterator as $file ) {
+
+			if ( $file->isDir() ) {
+				continue;
+			}
+
+			$path = $file->getPathname();
+			$type = wp_check_filetype( $path );
+
+			if ( isset( $type['ext'] ) && $type['ext'] === 'svg' ) {
+				$files[] = $file;
+			}
 
 		}
 
