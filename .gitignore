@@ -116,3 +116,7 @@ yarn-error.log
 
 bin/*
 !bin/install-wp-tests.sh
+
+dist
+
+wp-cli-blurify
